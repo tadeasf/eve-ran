@@ -213,6 +213,38 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "models.Attacker": {
+            "type": "object",
+            "properties": {
+                "alliance_id": {
+                    "type": "integer"
+                },
+                "character_id": {
+                    "type": "integer"
+                },
+                "corporation_id": {
+                    "type": "integer"
+                },
+                "damage_done": {
+                    "type": "integer"
+                },
+                "faction_id": {
+                    "type": "integer"
+                },
+                "final_blow": {
+                    "type": "boolean"
+                },
+                "security_status": {
+                    "type": "number"
+                },
+                "ship_type_id": {
+                    "type": "integer"
+                },
+                "weapon_type_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Character": {
             "type": "object",
             "properties": {
@@ -229,9 +261,41 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Item": {
+            "type": "object",
+            "properties": {
+                "flag": {
+                    "type": "integer"
+                },
+                "item_type_id": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Item"
+                    }
+                },
+                "quantity_destroyed": {
+                    "type": "integer"
+                },
+                "quantity_dropped": {
+                    "type": "integer"
+                },
+                "singleton": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.Kill": {
             "type": "object",
             "properties": {
+                "attackers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Attacker"
+                    }
+                },
                 "awox": {
                     "type": "boolean"
                 },
@@ -273,6 +337,9 @@ const docTemplate = `{
                 },
                 "totalValue": {
                     "type": "number"
+                },
+                "victim": {
+                    "$ref": "#/definitions/models.Victim"
                 }
             }
         },
@@ -290,6 +357,52 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "totalPages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Position": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
+                },
+                "z": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.Victim": {
+            "type": "object",
+            "properties": {
+                "alliance_id": {
+                    "type": "integer"
+                },
+                "character_id": {
+                    "type": "integer"
+                },
+                "corporation_id": {
+                    "type": "integer"
+                },
+                "damage_taken": {
+                    "type": "integer"
+                },
+                "faction_id": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Item"
+                    }
+                },
+                "position": {
+                    "$ref": "#/definitions/models.Position"
+                },
+                "ship_type_id": {
                     "type": "integer"
                 }
             }

@@ -63,7 +63,7 @@ func RemoveCharacter(c *gin.Context) {
 		return
 	}
 
-	_, err = db.DB.Exec("DELETE FROM characters WHERE id = $1", id)
+	err = db.DB.Delete(&models.Character{}, id).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -168,19 +168,8 @@ func fetchKillsFromZKillboard(characterID int64, page int) ([]models.Kill, error
 
 func storeKills(characterID int64, kills []models.Kill) error {
 	for _, kill := range kills {
-		_, err := db.DB.Exec(`
-			INSERT INTO kills (
-				killmail_id, character_id, killmail_time, solar_system_id,
-				location_id, hash, fitted_value, dropped_value, destroyed_value,
-				total_value, points, npc, solo, awox
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-			ON CONFLICT (killmail_id) DO NOTHING
-		`,
-			kill.KillmailID, characterID, kill.KillTime, kill.SolarSystemID,
-			kill.LocationID, kill.Hash, kill.FittedValue, kill.DroppedValue,
-			kill.DestroyedValue, kill.TotalValue, kill.Points,
-			kill.NPC, kill.Solo, kill.Awox,
-		)
+		kill.CharacterID = characterID
+		err := db.DB.Create(&kill).Error
 		if err != nil {
 			return err
 		}
@@ -223,13 +212,13 @@ func GetCharacterKillsFromDB(c *gin.Context) {
 		return
 	}
 
-	totalPages := (totalItems + pageSize - 1) / pageSize
+	totalPages := int((totalItems + int64(pageSize) - 1) / int64(pageSize))
 
 	response := models.PaginatedResponse{
 		Data:       kills,
 		Page:       page,
 		PageSize:   pageSize,
-		TotalItems: totalItems,
+		TotalItems: int(totalItems),
 		TotalPages: totalPages,
 	}
 

@@ -57,7 +57,7 @@ func FetchKillsFromZKillboard(characterID int64, page int) ([]models.Kill, error
 		kill := models.Kill{
 			KillmailID:     rawKill.KillmailID,
 			CharacterID:    characterID,
-			KillTime:       rawKill.KillmailTime,
+			KillTime:       rawKill.KillmailTime, // Make sure this is correctly set
 			SolarSystemID:  rawKill.SolarSystemID,
 			LocationID:     rawKill.ZKB.LocationID,
 			Hash:           rawKill.ZKB.Hash,

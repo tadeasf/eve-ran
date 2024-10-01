@@ -1,5 +1,26 @@
 basePath: /
 definitions:
+  models.Attacker:
+    properties:
+      alliance_id:
+        type: integer
+      character_id:
+        type: integer
+      corporation_id:
+        type: integer
+      damage_done:
+        type: integer
+      faction_id:
+        type: integer
+      final_blow:
+        type: boolean
+      security_status:
+        type: number
+      ship_type_id:
+        type: integer
+      weapon_type_id:
+        type: integer
+    type: object
   models.Character:
     properties:
       id:
@@ -10,8 +31,29 @@ definitions:
       error:
         type: string
     type: object
+  models.Item:
+    properties:
+      flag:
+        type: integer
+      item_type_id:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/models.Item'
+        type: array
+      quantity_destroyed:
+        type: integer
+      quantity_dropped:
+        type: integer
+      singleton:
+        type: integer
+    type: object
   models.Kill:
     properties:
+      attackers:
+        items:
+          $ref: '#/definitions/models.Attacker'
+        type: array
       awox:
         type: boolean
       character_id:
@@ -40,6 +82,8 @@ definitions:
         type: boolean
       totalValue:
         type: number
+      victim:
+        $ref: '#/definitions/models.Victim'
     type: object
   models.PaginatedResponse:
     properties:
@@ -51,6 +95,36 @@ definitions:
       totalItems:
         type: integer
       totalPages:
+        type: integer
+    type: object
+  models.Position:
+    properties:
+      x:
+        type: number
+      "y":
+        type: number
+      z:
+        type: number
+    type: object
+  models.Victim:
+    properties:
+      alliance_id:
+        type: integer
+      character_id:
+        type: integer
+      corporation_id:
+        type: integer
+      damage_taken:
+        type: integer
+      faction_id:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/models.Item'
+        type: array
+      position:
+        $ref: '#/definitions/models.Position'
+      ship_type_id:
         type: integer
     type: object
 host: localhost:8080

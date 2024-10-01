@@ -3,26 +3,26 @@ package models
 import "time"
 
 type Character struct {
-	ID int64 `json:"id" db:"id,bigint,PRIMARY KEY"`
+	ID int64 `gorm:"primaryKey" json:"id"`
 }
 
 type Kill struct {
-	KillmailID     int64      `json:"killmail_id" db:"killmail_id,bigint,PRIMARY KEY"`
-	CharacterID    int64      `json:"character_id" db:"character_id,bigint,REFERENCES characters(id)"`
-	KillTime       time.Time  `json:"killmail_time" db:"killmail_time,timestamp"`
-	SolarSystemID  int        `json:"solar_system_id" db:"solar_system_id,integer"`
-	LocationID     int64      `json:"locationID" db:"location_id,bigint"`
-	Hash           string     `json:"hash" db:"hash,text"`
-	FittedValue    float64    `json:"fittedValue" db:"fitted_value,numeric"`
-	DroppedValue   float64    `json:"droppedValue" db:"dropped_value,numeric"`
-	DestroyedValue float64    `json:"destroyedValue" db:"destroyed_value,numeric"`
-	TotalValue     float64    `json:"totalValue" db:"total_value,numeric"`
-	Points         int        `json:"points" db:"points,integer"`
-	NPC            bool       `json:"npc" db:"npc,boolean"`
-	Solo           bool       `json:"solo" db:"solo,boolean"`
-	Awox           bool       `json:"awox" db:"awox,boolean"`
-	Victim         Victim     `json:"victim" db:"victim,jsonb"`
-	Attackers      []Attacker `json:"attackers" db:"attackers,jsonb"`
+	KillmailID     int64      `gorm:"primaryKey" json:"killmail_id"`
+	CharacterID    int64      `gorm:"index" json:"character_id"`
+	KillTime       time.Time  `json:"killmail_time"`
+	SolarSystemID  int        `gorm:"index" json:"solar_system_id"`
+	LocationID     int64      `json:"locationID"`
+	Hash           string     `gorm:"type:text" json:"hash"`
+	FittedValue    float64    `json:"fittedValue"`
+	DroppedValue   float64    `json:"droppedValue"`
+	DestroyedValue float64    `json:"destroyedValue"`
+	TotalValue     float64    `json:"totalValue"`
+	Points         int        `json:"points"`
+	NPC            bool       `json:"npc"`
+	Solo           bool       `json:"solo"`
+	Awox           bool       `json:"awox"`
+	Victim         Victim     `gorm:"type:jsonb" json:"victim"`
+	Attackers      []Attacker `gorm:"type:jsonb" json:"attackers"`
 }
 
 type Victim struct {
@@ -46,15 +46,6 @@ type Attacker struct {
 	SecurityStatus float64 `json:"security_status"`
 	ShipTypeID     *int    `json:"ship_type_id,omitempty"`
 	WeaponTypeID   *int    `json:"weapon_type_id,omitempty"`
-}
-
-type Item struct {
-	Flag              int    `json:"flag"`
-	ItemTypeID        int    `json:"item_type_id"`
-	QuantityDestroyed *int64 `json:"quantity_destroyed,omitempty"`
-	QuantityDropped   *int64 `json:"quantity_dropped,omitempty"`
-	Singleton         int    `json:"singleton"`
-	Items             []Item `json:"items,omitempty"`
 }
 
 type Position struct {

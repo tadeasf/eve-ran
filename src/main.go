@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -21,32 +19,6 @@ import (
 
 func main() {
 	db.InitDB()
-	defer db.DB.Close()
-
-	// Create kills table
-	_, err := db.DB.Exec(`
-		CREATE TABLE IF NOT EXISTS kills (
-			killmail_id BIGINT PRIMARY KEY,
-			character_id BIGINT REFERENCES characters(id),
-			killmail_time TIMESTAMP,
-			solar_system_id INTEGER,
-			location_id BIGINT,
-			hash TEXT,
-			fitted_value NUMERIC,
-			dropped_value NUMERIC,
-			destroyed_value NUMERIC,
-			total_value NUMERIC,
-			points INTEGER,
-			npc BOOLEAN,
-			solo BOOLEAN,
-			awox BOOLEAN,
-			victim JSONB,
-			attackers JSONB
-		)
-	`)
-	if err != nil {
-		log.Fatalf("Error creating kills table: %v", err)
-	}
 
 	// Start the kill fetcher job
 	go jobs.StartKillFetcherJob()
@@ -58,6 +30,23 @@ func main() {
 	r.DELETE("/characters/:id", routes.RemoveCharacter)
 	r.GET("/characters/:id/kills", routes.GetCharacterKills)
 	r.GET("/characters/:id/kills/db", routes.GetCharacterKillsFromDB)
+
+	// Region routes
+	r.POST("/regions/fetch", routes.FetchAndStoreRegions)
+	r.GET("/regions", routes.GetAllRegions)
+
+	// System routes
+	r.POST("/systems/fetch", routes.FetchAndStoreSystems)
+	r.GET("/systems", routes.GetAllSystems)
+
+	// Constellation routes
+	r.POST("/constellations/fetch", routes.FetchAndStoreConstellations)
+	r.GET("/constellations", routes.GetAllConstellations)
+
+	// Item routes
+	r.POST("/items/fetch", routes.FetchAndStoreItems)
+	r.GET("/items", routes.GetAllItems)
+	r.GET("/items/:typeID", routes.GetItemByTypeID)
 
 	// Setup Swagger
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
