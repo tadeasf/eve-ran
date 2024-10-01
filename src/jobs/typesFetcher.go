@@ -2,9 +2,10 @@ package jobs
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/tadeasf/eve-ran/src/db"
 	"github.com/tadeasf/eve-ran/src/db/models"
@@ -16,29 +17,34 @@ const (
 )
 
 func FetchAndUpdateTypes() {
+	log.Println("Starting FetchAndUpdateTypes job")
 	fetchAndUpdateRegions()
 	fetchAndUpdateConstellations()
 	fetchAndUpdateSystems()
 	fetchAndUpdateItems()
+	log.Println("Finished FetchAndUpdateTypes job")
 }
 
 func fetchAndUpdateRegions() {
+	log.Println("Fetching and updating regions")
 	regions, err := services.FetchAllRegions(10)
 	if err != nil {
-		fmt.Printf("Error fetching regions: %v\n", err)
+		log.Printf("Error fetching regions: %v", err)
 		return
 	}
 
 	for _, region := range regions {
 		err := db.UpsertRegion(region)
 		if err != nil {
-			fmt.Printf("Error upserting region %d: %v\n", region.RegionID, err)
+			log.Printf("Error upserting region %d: %v", region.RegionID, err)
 		}
 	}
+	log.Println("Finished fetching and updating regions")
 }
 
 func fetchAndUpdateConstellations() {
-	url := fmt.Sprintf("%s/universe/constellations/", baseURL)
+	log.Println("Fetching and updating constellations")
+	url := baseURL + "/universe/constellations/"
 	ids := fetchIDs(url)
 
 	existingConstellations, _ := db.GetAllConstellations()
@@ -52,13 +58,14 @@ func fetchAndUpdateConstellations() {
 			fetchAndSaveConstellation(id)
 		}
 	}
+	log.Println("Finished fetching and updating constellations")
 }
 
 func fetchAndSaveConstellation(id int) {
-	url := fmt.Sprintf("%s/universe/constellations/%d/", baseURL, id)
+	url := baseURL + "/universe/constellations/" + strconv.Itoa(id) + "/"
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Printf("Error fetching constellation %d: %v\n", id, err)
+		log.Printf("Error fetching constellation %d: %v", id, err)
 		return
 	}
 	defer resp.Body.Close()
@@ -67,11 +74,15 @@ func fetchAndSaveConstellation(id int) {
 	var constellation models.Constellation
 	json.Unmarshal(body, &constellation)
 
-	db.UpsertConstellation(&constellation)
+	err = db.UpsertConstellation(&constellation)
+	if err != nil {
+		log.Printf("Error upserting constellation %d: %v", id, err)
+	}
 }
 
 func fetchAndUpdateSystems() {
-	url := fmt.Sprintf("%s/universe/systems/", baseURL)
+	log.Println("Fetching and updating systems")
+	url := baseURL + "/universe/systems/"
 	ids := fetchIDs(url)
 
 	existingSystems, _ := db.GetAllSystems()
@@ -85,13 +96,14 @@ func fetchAndUpdateSystems() {
 			fetchAndSaveSystem(id)
 		}
 	}
+	log.Println("Finished fetching and updating systems")
 }
 
 func fetchAndSaveSystem(id int) {
-	url := fmt.Sprintf("%s/universe/systems/%d/", baseURL, id)
+	url := baseURL + "/universe/systems/" + strconv.Itoa(id) + "/"
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Printf("Error fetching system %d: %v\n", id, err)
+		log.Printf("Error fetching system %d: %v", id, err)
 		return
 	}
 	defer resp.Body.Close()
@@ -100,11 +112,15 @@ func fetchAndSaveSystem(id int) {
 	var system models.System
 	json.Unmarshal(body, &system)
 
-	db.UpsertSystem(&system)
+	err = db.UpsertSystem(&system)
+	if err != nil {
+		log.Printf("Error upserting system %d: %v", id, err)
+	}
 }
 
 func fetchAndUpdateItems() {
-	url := fmt.Sprintf("%s/universe/types/", baseURL)
+	log.Println("Fetching and updating items")
+	url := baseURL + "/universe/types/"
 	ids := fetchIDs(url)
 
 	existingItems, _ := db.GetAllESIItems()
@@ -118,13 +134,18 @@ func fetchAndUpdateItems() {
 			fetchAndSaveItem(id)
 		}
 	}
+	log.Println("Finished fetching and updating items")
 }
 
 func fetchAndSaveItem(id int) {
-	url := fmt.Sprintf("%s/universe/types/%d/", baseURL, id)
+	if id == 0 {
+		log.Printf("Skipping item with ID 0")
+		return
+	}
+	url := baseURL + "/universe/types/" + strconv.Itoa(id) + "/"
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Printf("Error fetching item %d: %v\n", id, err)
+		log.Printf("Error fetching item %d: %v", id, err)
 		return
 	}
 	defer resp.Body.Close()
@@ -133,13 +154,16 @@ func fetchAndSaveItem(id int) {
 	var item models.ESIItem
 	json.Unmarshal(body, &item)
 
-	db.UpsertESIItem(&item)
+	err = db.UpsertESIItem(&item)
+	if err != nil {
+		log.Printf("Error upserting item %d: %v", id, err)
+	}
 }
 
 func fetchIDs(url string) []int {
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Printf("Error fetching IDs: %v\n", err)
+		log.Printf("Error fetching IDs from %s: %v", url, err)
 		return nil
 	}
 	defer resp.Body.Close()
