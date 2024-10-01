@@ -1,6 +1,8 @@
 package db
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/tadeasf/eve-ran/src/db/models"
@@ -18,7 +20,36 @@ func GetCharacterByID(id int64) (*models.Character, error) {
 }
 
 func InsertKill(kill *models.Kill) error {
-	return DB.Create(kill).Error
+	// Convert Victim and Attackers to JSON
+	victimJSON, err := json.Marshal(kill.Victim)
+	if err != nil {
+		return fmt.Errorf("error marshaling victim: %v", err)
+	}
+
+	attackersJSON, err := json.Marshal(kill.Attackers)
+	if err != nil {
+		return fmt.Errorf("error marshaling attackers: %v", err)
+	}
+
+	// Use the json.RawMessage type for the JSONB columns
+	result := DB.Exec(`
+		INSERT INTO kills (
+			killmail_id, character_id, kill_time, solar_system_id, location_id,
+			hash, fitted_value, dropped_value, destroyed_value, total_value,
+			points, npc, solo, awox, victim, attackers
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`,
+		kill.KillmailID, kill.CharacterID, kill.KillTime, kill.SolarSystemID,
+		kill.LocationID, kill.Hash, kill.FittedValue, kill.DroppedValue,
+		kill.DestroyedValue, kill.TotalValue, kill.Points, kill.NPC,
+		kill.Solo, kill.Awox, json.RawMessage(victimJSON), json.RawMessage(attackersJSON),
+	)
+
+	if result.Error != nil {
+		return fmt.Errorf("error inserting kill %d: %v", kill.KillmailID, result.Error)
+	}
+
+	return nil
 }
 
 func GetKillByID(id int64) (*models.Kill, error) {
@@ -34,7 +65,19 @@ func GetLastKillTimeForCharacter(characterID int64) (time.Time, error) {
 }
 
 func UpsertRegion(region *models.Region) error {
-	return DB.Save(region).Error
+	constellationsJSON, err := json.Marshal(region.Constellations)
+	if err != nil {
+		return err
+	}
+
+	return DB.Exec(`
+        INSERT INTO regions (region_id, name, description, constellations)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT (region_id) DO UPDATE
+        SET name = EXCLUDED.name,
+            description = EXCLUDED.description,
+            constellations = EXCLUDED.constellations
+    `, region.RegionID, region.Name, region.Description, constellationsJSON).Error
 }
 
 func GetAllRegions() ([]models.Region, error) {
@@ -44,7 +87,40 @@ func GetAllRegions() ([]models.Region, error) {
 }
 
 func UpsertSystem(system *models.System) error {
-	return DB.Save(system).Error
+	planetsJSON, err := json.Marshal(system.Planets)
+	if err != nil {
+		return err
+	}
+
+	stargatesJSON, err := json.Marshal(system.Stargates)
+	if err != nil {
+		return err
+	}
+
+	stationsJSON, err := json.Marshal(system.Stations)
+	if err != nil {
+		return err
+	}
+
+	positionJSON, err := json.Marshal(system.Position)
+	if err != nil {
+		return err
+	}
+
+	return DB.Exec(`
+        INSERT INTO systems (system_id, constellation_id, name, security_class, security_status, star_id, planets, stargates, stations, position)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (system_id) DO UPDATE
+        SET constellation_id = EXCLUDED.constellation_id,
+            name = EXCLUDED.name,
+            security_class = EXCLUDED.security_class,
+            security_status = EXCLUDED.security_status,
+            star_id = EXCLUDED.star_id,
+            planets = EXCLUDED.planets,
+            stargates = EXCLUDED.stargates,
+            stations = EXCLUDED.stations,
+            position = EXCLUDED.position
+    `, system.SystemID, system.ConstellationID, system.Name, system.SecurityClass, system.SecurityStatus, system.StarID, planetsJSON, stargatesJSON, stationsJSON, positionJSON).Error
 }
 
 func GetAllSystems() ([]models.System, error) {
@@ -54,7 +130,20 @@ func GetAllSystems() ([]models.System, error) {
 }
 
 func UpsertConstellation(constellation *models.Constellation) error {
-	return DB.Save(constellation).Error
+	systemsJSON, err := json.Marshal(constellation.Systems)
+	if err != nil {
+		return err
+	}
+
+	return DB.Exec(`
+        INSERT INTO constellations (constellation_id, name, region_id, systems, position)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT (constellation_id) DO UPDATE
+        SET name = EXCLUDED.name,
+            region_id = EXCLUDED.region_id,
+            systems = EXCLUDED.systems,
+            position = EXCLUDED.position
+    `, constellation.ConstellationID, constellation.Name, constellation.RegionID, systemsJSON, constellation.Position).Error
 }
 
 func GetAllConstellations() ([]models.Constellation, error) {

@@ -23,6 +23,9 @@ func main() {
 	// Start the kill fetcher job
 	go jobs.StartKillFetcherJob()
 
+	// Run the type fetcher job
+	go jobs.FetchAndUpdateTypes()
+
 	r := gin.Default()
 
 	// zKillboard routes
@@ -38,10 +41,14 @@ func main() {
 	// System routes
 	r.POST("/systems/fetch", routes.FetchAndStoreSystems)
 	r.GET("/systems", routes.GetAllSystems)
+	r.GET("/systems/:id", routes.GetSystemByID)
+	r.GET("/systems/region/:regionID", routes.GetSystemsByRegion)
 
 	// Constellation routes
 	r.POST("/constellations/fetch", routes.FetchAndStoreConstellations)
 	r.GET("/constellations", routes.GetAllConstellations)
+	r.GET("/constellations/:id", routes.GetConstellationByID)
+	r.GET("/constellations/region/:regionID", routes.GetConstellationsByRegion)
 
 	// Item routes
 	r.POST("/items/fetch", routes.FetchAndStoreItems)

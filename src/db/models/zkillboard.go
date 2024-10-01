@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type Character struct {
 	ID int64 `gorm:"primaryKey" json:"id"`
@@ -46,10 +48,4 @@ type Attacker struct {
 	SecurityStatus float64 `json:"security_status"`
 	ShipTypeID     *int    `json:"ship_type_id,omitempty"`
 	WeaponTypeID   *int    `json:"weapon_type_id,omitempty"`
-}
-
-type Position struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	Z float64 `json:"z"`
 }

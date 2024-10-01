@@ -224,3 +224,55 @@ func GetCharacterKillsFromDB(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+// GetKillsByRegion retrieves kills by region
+// @Summary Get kills by region
+// @Description Fetch kills for a region from the database
+// @Tags kills
+// @Accept json
+// @Produce json
+// @Param regionID path int true "Region ID"
+// @Param page query int false "Page number"
+// @Param pageSize query int false "Page size"
+// @Param startDate query string false "Start date (YYYY-MM-DD)"
+// @Param endDate query string false "End date (YYYY-MM-DD)"
+// @Success 200 {object} models.PaginatedResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /kills/region/{regionID} [get]
+func GetKillsByRegion(c *gin.Context) {
+	regionID, err := strconv.Atoi(c.Param("regionID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid region ID"})
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	startDate := c.Query("startDate")
+	endDate := c.Query("endDate")
+
+	kills, err := db.GetKillsByRegion(regionID, page, pageSize, startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	totalItems, err := db.GetTotalKillsByRegion(regionID, startDate, endDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	totalPages := int((totalItems + int64(pageSize) - 1) / int64(pageSize))
+
+	response := models.PaginatedResponse{
+		Data:       kills,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalItems: int(totalItems),
+		TotalPages: totalPages,
+	}
+
+	c.JSON(http.StatusOK, response)
+}

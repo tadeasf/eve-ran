@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tadeasf/eve-ran/src/db"
@@ -28,6 +29,43 @@ func FetchAndStoreConstellations(c *gin.Context) {
 
 func GetAllConstellations(c *gin.Context) {
 	constellations, err := db.GetAllConstellations()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, constellations)
+}
+
+func GetConstellationByID(c *gin.Context) {
+	constellationID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid constellation ID"})
+		return
+	}
+
+	constellation, err := db.GetConstellation(constellationID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if constellation == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Constellation not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, constellation)
+}
+
+func GetConstellationsByRegion(c *gin.Context) {
+	regionID, err := strconv.Atoi(c.Param("regionID"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid region ID"})
+		return
+	}
+
+	constellations, err := db.GetConstellationsByRegionID(regionID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
