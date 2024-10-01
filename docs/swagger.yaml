@@ -37,10 +37,6 @@ definitions:
         type: integer
       item_type_id:
         type: integer
-      items:
-        items:
-          $ref: '#/definitions/models.Item'
-        type: array
       quantity_destroyed:
         type: integer
       quantity_dropped:
@@ -58,11 +54,11 @@ definitions:
         type: boolean
       character_id:
         type: integer
-      destroyedValue:
+      destroyed_value:
         type: number
-      droppedValue:
+      dropped_value:
         type: number
-      fittedValue:
+      fitted_value:
         type: number
       hash:
         type: string
@@ -80,7 +76,7 @@ definitions:
         type: integer
       solo:
         type: boolean
-      totalValue:
+      total_value:
         type: number
       victim:
         $ref: '#/definitions/models.Victim'

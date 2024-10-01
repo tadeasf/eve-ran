@@ -338,12 +338,6 @@ const docTemplate = `{
                 "item_type_id": {
                     "type": "integer"
                 },
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Item"
-                    }
-                },
                 "quantity_destroyed": {
                     "type": "integer"
                 },
@@ -370,13 +364,13 @@ const docTemplate = `{
                 "character_id": {
                     "type": "integer"
                 },
-                "destroyedValue": {
+                "destroyed_value": {
                     "type": "number"
                 },
-                "droppedValue": {
+                "dropped_value": {
                     "type": "number"
                 },
-                "fittedValue": {
+                "fitted_value": {
                     "type": "number"
                 },
                 "hash": {
@@ -403,7 +397,7 @@ const docTemplate = `{
                 "solo": {
                     "type": "boolean"
                 },
-                "totalValue": {
+                "total_value": {
                     "type": "number"
                 },
                 "victim": {
