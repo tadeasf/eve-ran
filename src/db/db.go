@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/tadeasf/eve-ran/src/db/models"
@@ -19,7 +20,36 @@ func GetCharacterByID(id int64) (*models.Character, error) {
 }
 
 func InsertKill(kill *models.Kill) error {
-	return DB.Create(kill).Error
+	// Convert Victim and Attackers to JSON
+	victimJSON, err := json.Marshal(kill.Victim)
+	if err != nil {
+		return fmt.Errorf("error marshaling victim: %v", err)
+	}
+
+	attackersJSON, err := json.Marshal(kill.Attackers)
+	if err != nil {
+		return fmt.Errorf("error marshaling attackers: %v", err)
+	}
+
+	// Use the json.RawMessage type for the JSONB columns
+	result := DB.Exec(`
+		INSERT INTO kills (
+			killmail_id, character_id, kill_time, solar_system_id, location_id,
+			hash, fitted_value, dropped_value, destroyed_value, total_value,
+			points, npc, solo, awox, victim, attackers
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`,
+		kill.KillmailID, kill.CharacterID, kill.KillTime, kill.SolarSystemID,
+		kill.LocationID, kill.Hash, kill.FittedValue, kill.DroppedValue,
+		kill.DestroyedValue, kill.TotalValue, kill.Points, kill.NPC,
+		kill.Solo, kill.Awox, json.RawMessage(victimJSON), json.RawMessage(attackersJSON),
+	)
+
+	if result.Error != nil {
+		return fmt.Errorf("error inserting kill %d: %v", kill.KillmailID, result.Error)
+	}
+
+	return nil
 }
 
 func GetKillByID(id int64) (*models.Kill, error) {
