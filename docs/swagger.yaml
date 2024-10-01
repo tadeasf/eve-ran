@@ -263,6 +263,51 @@ paths:
       summary: Get character kills from database
       tags:
       - characters
+  /kills/region/{regionID}:
+    get:
+      consumes:
+      - application/json
+      description: Fetch kills for a region from the database
+      parameters:
+      - description: Region ID
+        in: path
+        name: regionID
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: startDate
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: endDate
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.PaginatedResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get kills by region
+      tags:
+      - kills
 schemes:
 - http
 - https
