@@ -45,7 +45,16 @@ func FetchRegionInfo(regionID int) (*models.Region, error) {
 
 	var region models.Region
 	err = json.Unmarshal(body, &region)
-	return &region, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure Constellations is initialized as an empty slice if it's null
+	if region.Constellations == nil {
+		region.Constellations = []int{}
+	}
+
+	return &region, nil
 }
 
 func FetchSystemIDs() ([]int, error) {
