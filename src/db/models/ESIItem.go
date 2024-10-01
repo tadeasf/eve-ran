@@ -14,7 +14,6 @@ type ESIItem struct {
 	Radius         float64 `json:"radius"`
 }
 
-// Keep the existing Item struct for zKillboard API
 type ZKillboardItem struct {
 	Flag              int              `json:"flag"`
 	ItemTypeID        int              `json:"item_type_id"`

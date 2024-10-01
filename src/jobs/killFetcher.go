@@ -23,7 +23,6 @@ func StartKillFetcherJob() {
 	})
 	c.Start()
 
-	// Run the job immediately on startup
 	go fetchKillsForAllCharacters()
 }
 

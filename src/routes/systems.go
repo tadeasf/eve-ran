@@ -37,8 +37,6 @@ func GetAllSystems(c *gin.Context) {
 	c.JSON(http.StatusOK, systems)
 }
 
-// Add these new functions to the existing file
-
 func GetSystemByID(c *gin.Context) {
 	systemID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
