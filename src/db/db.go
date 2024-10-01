@@ -20,31 +20,11 @@ func GetCharacterByID(id int64) (*models.Character, error) {
 }
 
 func InsertKill(kill *models.Kill) error {
-	// Convert Victim and Attackers to JSON
-	victimJSON, err := json.Marshal(kill.Victim)
-	if err != nil {
-		return fmt.Errorf("error marshaling victim: %v", err)
+	if kill.KillTime.IsZero() {
+		return fmt.Errorf("kill time is not set for killmail_id %d", kill.KillmailID)
 	}
 
-	attackersJSON, err := json.Marshal(kill.Attackers)
-	if err != nil {
-		return fmt.Errorf("error marshaling attackers: %v", err)
-	}
-
-	// Use the json.RawMessage type for the JSONB columns
-	result := DB.Exec(`
-		INSERT INTO kills (
-			killmail_id, character_id, kill_time, solar_system_id, location_id,
-			hash, fitted_value, dropped_value, destroyed_value, total_value,
-			points, npc, solo, awox, victim, attackers
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`,
-		kill.KillmailID, kill.CharacterID, kill.KillTime, kill.SolarSystemID,
-		kill.LocationID, kill.Hash, kill.FittedValue, kill.DroppedValue,
-		kill.DestroyedValue, kill.TotalValue, kill.Points, kill.NPC,
-		kill.Solo, kill.Awox, json.RawMessage(victimJSON), json.RawMessage(attackersJSON),
-	)
-
+	result := DB.Create(kill)
 	if result.Error != nil {
 		return fmt.Errorf("error inserting kill %d: %v", kill.KillmailID, result.Error)
 	}
@@ -59,9 +39,26 @@ func GetKillByID(id int64) (*models.Kill, error) {
 }
 
 func GetLastKillTimeForCharacter(characterID int64) (time.Time, error) {
-	var kill models.Kill
-	err := DB.Where("character_id = ?", characterID).Order("kill_time DESC").First(&kill).Error
-	return kill.KillTime, err
+	var lastKill struct {
+		KillTime time.Time
+	}
+
+	result := DB.Table("kills").
+		Where("character_id = ?", characterID).
+		Order("kill_time DESC").
+		Limit(1).
+		Select("kill_time").
+		Scan(&lastKill)
+
+	if result.Error != nil {
+		return time.Time{}, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return time.Time{}, nil
+	}
+
+	return lastKill.KillTime, nil
 }
 
 func UpsertRegion(region *models.Region) error {

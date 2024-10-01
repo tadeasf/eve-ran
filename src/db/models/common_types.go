@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,5 +34,23 @@ func (p *Position) Scan(value interface{}) error {
 	}
 
 	err := json.Unmarshal(bytes, &p)
+	return err
+}
+
+type ItemArray []Item
+
+func (a ItemArray) Value() (driver.Value, error) {
+	return json.Marshal(a)
+}
+
+func (a *ItemArray) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New(fmt.Sprint("Failed to unmarshal JSONB value:", value))
+	}
+
+	var items []Item
+	err := json.Unmarshal(bytes, &items)
+	*a = ItemArray(items)
 	return err
 }

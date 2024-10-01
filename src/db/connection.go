@@ -21,12 +21,14 @@ func InitDB() {
 
 	fmt.Println("Successfully connected to the database")
 
-	// Auto Migrate the schema
-	migrateSchema()
+	err = InitTables()
+	if err != nil {
+		log.Fatal("Failed to initialize tables:", err)
+	}
 }
 
-func migrateSchema() {
-	DB.AutoMigrate(
+func InitTables() error {
+	return DB.AutoMigrate(
 		&models.Character{},
 		&models.Kill{},
 		&models.Region{},

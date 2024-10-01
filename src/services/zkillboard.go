@@ -57,7 +57,7 @@ func FetchKillsFromZKillboard(characterID int64, page int) ([]models.Kill, error
 		kill := models.Kill{
 			KillmailID:     rawKill.KillmailID,
 			CharacterID:    characterID,
-			KillTime:       rawKill.KillmailTime, // Make sure this is correctly set
+			KillTime:       rawKill.KillmailTime,
 			SolarSystemID:  rawKill.SolarSystemID,
 			LocationID:     rawKill.ZKB.LocationID,
 			Hash:           rawKill.ZKB.Hash,
@@ -97,17 +97,26 @@ func FetchKillmailFromESI(killmailID int64, killmailHash string) (*models.Kill, 
 	}
 
 	var esiKillmail struct {
-		Victim    models.Victim     `json:"victim"`
-		Attackers []models.Attacker `json:"attackers"`
+		KillmailTime  string            `json:"killmail_time"`
+		Victim        models.Victim     `json:"victim"`
+		Attackers     []models.Attacker `json:"attackers"`
+		SolarSystemID int               `json:"solar_system_id"`
 	}
 	err = json.Unmarshal(body, &esiKillmail)
 	if err != nil {
 		return nil, err
 	}
 
+	killTime, err := time.Parse(time.RFC3339, esiKillmail.KillmailTime)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing kill time: %v", err)
+	}
+
 	return &models.Kill{
-		KillmailID: killmailID,
-		Victim:     esiKillmail.Victim,
-		Attackers:  esiKillmail.Attackers,
+		KillmailID:    killmailID,
+		KillTime:      killTime,
+		Victim:        esiKillmail.Victim,
+		Attackers:     esiKillmail.Attackers,
+		SolarSystemID: esiKillmail.SolarSystemID,
 	}, nil
 }

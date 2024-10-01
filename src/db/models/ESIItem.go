@@ -15,11 +15,11 @@ type ESIItem struct {
 }
 
 // Keep the existing Item struct for zKillboard API
-type Item struct {
-	Flag              int    `json:"flag"`
-	ItemTypeID        int    `json:"item_type_id"`
-	QuantityDestroyed *int64 `json:"quantity_destroyed,omitempty"`
-	QuantityDropped   *int64 `json:"quantity_dropped,omitempty"`
-	Singleton         int    `json:"singleton"`
-	Items             []Item `gorm:"type:jsonb" json:"items,omitempty"`
+type ZKillboardItem struct {
+	Flag              int              `json:"flag"`
+	ItemTypeID        int              `json:"item_type_id"`
+	QuantityDestroyed *int64           `json:"quantity_destroyed,omitempty"`
+	QuantityDropped   *int64           `json:"quantity_dropped,omitempty"`
+	Singleton         int              `json:"singleton"`
+	Items             []ZKillboardItem `gorm:"type:jsonb" json:"items,omitempty"`
 }
