@@ -1,0 +1,195 @@
+basePath: /
+definitions:
+  models.Character:
+    properties:
+      id:
+        type: integer
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  models.Kill:
+    properties:
+      awox:
+        type: boolean
+      character_id:
+        type: integer
+      destroyedValue:
+        type: number
+      droppedValue:
+        type: number
+      fittedValue:
+        type: number
+      hash:
+        type: string
+      killmail_id:
+        type: integer
+      killmail_time:
+        type: string
+      locationID:
+        type: integer
+      npc:
+        type: boolean
+      points:
+        type: integer
+      solar_system_id:
+        type: integer
+      solo:
+        type: boolean
+      totalValue:
+        type: number
+    type: object
+  models.PaginatedResponse:
+    properties:
+      data: {}
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      totalItems:
+        type: integer
+      totalPages:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is the API for EVE Ran application.
+  title: EVE Ran API
+  version: "1.0"
+paths:
+  /characters:
+    post:
+      consumes:
+      - application/json
+      description: Add a new character ID to the database and fetch all kills
+      parameters:
+      - description: Character ID
+        in: body
+        name: character
+        required: true
+        schema:
+          $ref: '#/definitions/models.Character'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Character'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Add a new character ID
+      tags:
+      - characters
+  /characters/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a character from the database
+      parameters:
+      - description: Character ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Remove a character
+      tags:
+      - characters
+  /characters/{id}/kills:
+    get:
+      consumes:
+      - application/json
+      description: Fetch and store kills for a character from zKillboard
+      parameters:
+      - description: Character ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Kill'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get character kills
+      tags:
+      - characters
+  /characters/{id}/kills/db:
+    get:
+      consumes:
+      - application/json
+      description: Fetch kills for a character from the database
+      parameters:
+      - description: Character ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.PaginatedResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get character kills from database
+      tags:
+      - characters
+schemes:
+- http
+- https
+swagger: "2.0"
