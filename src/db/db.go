@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/tadeasf/eve-ran/src/db/models"
@@ -34,7 +35,19 @@ func GetLastKillTimeForCharacter(characterID int64) (time.Time, error) {
 }
 
 func UpsertRegion(region *models.Region) error {
-	return DB.Save(region).Error
+	constellationsJSON, err := json.Marshal(region.Constellations)
+	if err != nil {
+		return err
+	}
+
+	return DB.Exec(`
+        INSERT INTO regions (region_id, name, description, constellations)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT (region_id) DO UPDATE
+        SET name = EXCLUDED.name,
+            description = EXCLUDED.description,
+            constellations = EXCLUDED.constellations
+    `, region.RegionID, region.Name, region.Description, constellationsJSON).Error
 }
 
 func GetAllRegions() ([]models.Region, error) {
@@ -44,7 +57,40 @@ func GetAllRegions() ([]models.Region, error) {
 }
 
 func UpsertSystem(system *models.System) error {
-	return DB.Save(system).Error
+	planetsJSON, err := json.Marshal(system.Planets)
+	if err != nil {
+		return err
+	}
+
+	stargatesJSON, err := json.Marshal(system.Stargates)
+	if err != nil {
+		return err
+	}
+
+	stationsJSON, err := json.Marshal(system.Stations)
+	if err != nil {
+		return err
+	}
+
+	positionJSON, err := json.Marshal(system.Position)
+	if err != nil {
+		return err
+	}
+
+	return DB.Exec(`
+        INSERT INTO systems (system_id, constellation_id, name, security_class, security_status, star_id, planets, stargates, stations, position)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (system_id) DO UPDATE
+        SET constellation_id = EXCLUDED.constellation_id,
+            name = EXCLUDED.name,
+            security_class = EXCLUDED.security_class,
+            security_status = EXCLUDED.security_status,
+            star_id = EXCLUDED.star_id,
+            planets = EXCLUDED.planets,
+            stargates = EXCLUDED.stargates,
+            stations = EXCLUDED.stations,
+            position = EXCLUDED.position
+    `, system.SystemID, system.ConstellationID, system.Name, system.SecurityClass, system.SecurityStatus, system.StarID, planetsJSON, stargatesJSON, stationsJSON, positionJSON).Error
 }
 
 func GetAllSystems() ([]models.System, error) {
@@ -54,7 +100,20 @@ func GetAllSystems() ([]models.System, error) {
 }
 
 func UpsertConstellation(constellation *models.Constellation) error {
-	return DB.Save(constellation).Error
+	systemsJSON, err := json.Marshal(constellation.Systems)
+	if err != nil {
+		return err
+	}
+
+	return DB.Exec(`
+        INSERT INTO constellations (constellation_id, name, region_id, systems, position)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT (constellation_id) DO UPDATE
+        SET name = EXCLUDED.name,
+            region_id = EXCLUDED.region_id,
+            systems = EXCLUDED.systems,
+            position = EXCLUDED.position
+    `, constellation.ConstellationID, constellation.Name, constellation.RegionID, systemsJSON, constellation.Position).Error
 }
 
 func GetAllConstellations() ([]models.Constellation, error) {
