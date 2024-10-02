@@ -102,6 +102,19 @@ definitions:
       z:
         type: number
     type: object
+  models.Region:
+    properties:
+      constellations:
+        items:
+          type: integer
+        type: array
+      description:
+        type: string
+      name:
+        type: string
+      region_id:
+        type: integer
+    type: object
   models.Victim:
     properties:
       alliance_id:
@@ -131,6 +144,26 @@ info:
   version: "1.0"
 paths:
   /characters:
+    get:
+      consumes:
+      - application/json
+      description: Fetch all characters from the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Character'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get all characters
+      tags:
+      - characters
     post:
       consumes:
       - application/json
@@ -259,6 +292,27 @@ paths:
       summary: Get character kills from database
       tags:
       - characters
+  /kills:
+    get:
+      consumes:
+      - application/json
+      description: Fetch all kills from the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Kill'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get all kills
+      tags:
+      - kills
   /kills/region/{regionID}:
     get:
       consumes:
@@ -304,6 +358,27 @@ paths:
       summary: Get kills by region
       tags:
       - kills
+  /regions:
+    get:
+      consumes:
+      - application/json
+      description: Fetch all regions from the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Region'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get all regions
+      tags:
+      - regions
 schemes:
 - http
 - https
