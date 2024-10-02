@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -252,25 +253,19 @@ func GetKillsByRegion(c *gin.Context) {
 	startDate := c.Query("startDate")
 	endDate := c.Query("endDate")
 
-	kills, err := db.GetKillsByRegion(regionID, page, pageSize, startDate, endDate)
+	kills, totalCount, err := db.GetKillsByRegion(regionID, page, pageSize, startDate, endDate)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	totalItems, err := db.GetTotalKillsByRegion(regionID, startDate, endDate)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	totalPages := int((totalItems + int64(pageSize) - 1) / int64(pageSize))
+	totalPages := int(math.Ceil(float64(totalCount) / float64(pageSize)))
 
 	response := models.PaginatedResponse{
 		Data:       kills,
 		Page:       page,
 		PageSize:   pageSize,
-		TotalItems: int(totalItems),
+		TotalItems: int(totalCount),
 		TotalPages: totalPages,
 	}
 

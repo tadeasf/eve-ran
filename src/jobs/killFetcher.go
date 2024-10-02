@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -49,21 +50,37 @@ func fetchKillsForCharacter(characterID int64) {
 		lastKillTime = time.Time{}
 	}
 	log.Printf("Last kill time for character %d: %v", characterID, lastKillTime)
-
 	isNewCharacter := lastKillTime.IsZero()
 	page := 1
 	totalNewKills := 0
 
-	const maxConcurrentRequests = 200
+	const maxConcurrentRequests = 10
 	semaphore := make(chan struct{}, maxConcurrentRequests)
 	var wg sync.WaitGroup
 
+	killChan := make(chan *models.Kill, maxConcurrentRequests)
+	done := make(chan bool)
+	stopProcessing := make(chan bool)
+
+	go func() {
+		for kill := range killChan {
+			err = db.UpsertKill(kill)
+			if err != nil {
+				log.Printf("Error upserting kill %d: %v", kill.KillmailID, err)
+			} else {
+				totalNewKills++
+			}
+		}
+		done <- true
+	}()
+
+outerLoop:
 	for {
 		log.Printf("Fetching page %d for character %d", page, characterID)
 		kills, err := services.FetchKillsFromZKillboard(characterID, page)
 		if err != nil {
 			log.Printf("Error fetching kills for character %d: %v", characterID, err)
-			return
+			break
 		}
 
 		if len(kills) == 0 {
@@ -71,11 +88,12 @@ func fetchKillsForCharacter(characterID int64) {
 			break
 		}
 
-		newKills := 0
-		killChan := make(chan *models.Kill, len(kills))
-
+		var newKills int32
 		for _, kill := range kills {
-			if isNewCharacter || kill.KillTime.After(lastKillTime) {
+			select {
+			case <-stopProcessing:
+				break outerLoop
+			default:
 				wg.Add(1)
 				go func(k models.Kill) {
 					defer wg.Done()
@@ -88,35 +106,25 @@ func fetchKillsForCharacter(characterID int64) {
 						return
 					}
 
-					// Combine zKillboard and ESI data
+					k.KillTime = esiKill.KillTime
+					k.SolarSystemID = esiKill.SolarSystemID
 					k.Victim = esiKill.Victim
 					k.Attackers = esiKill.Attackers
-					killChan <- &k
+
+					if isNewCharacter || k.KillTime.After(lastKillTime) {
+						atomic.AddInt32(&newKills, 1)
+						killChan <- &k
+					} else {
+						log.Printf("Reached already processed kills for character %d", characterID)
+						stopProcessing <- true
+					}
 				}(kill)
-				newKills++
-			} else if !isNewCharacter {
-				log.Printf("Reached already processed kills for character %d", characterID)
-				close(killChan)
-				wg.Wait()
-				return
 			}
 		}
 
-		go func() {
-			wg.Wait()
-			close(killChan)
-		}()
+		wg.Wait()
 
-		for kill := range killChan {
-			err = db.InsertKill(kill)
-			if err != nil {
-				log.Printf("Error inserting kill %d: %v", kill.KillmailID, err)
-			} else {
-				totalNewKills++
-			}
-		}
-
-		log.Printf("Inserted %d new kills for character %d on page %d", newKills, characterID, page)
+		log.Printf("Processed %d new kills for character %d on page %d", newKills, characterID, page)
 
 		if newKills == 0 && !isNewCharacter {
 			log.Printf("No new kills on page %d for character %d, stopping", page, characterID)
@@ -124,8 +132,11 @@ func fetchKillsForCharacter(characterID int64) {
 		}
 
 		page++
-		time.Sleep(1 * time.Second) // Add a delay to avoid hitting rate limits
+		time.Sleep(1 * time.Second)
 	}
+
+	close(killChan)
+	<-done
 
 	log.Printf("Finished fetching kills for character %d. Total new kills: %d", characterID, totalNewKills)
 }
@@ -152,9 +163,8 @@ func FetchKillsForCharacter(characterID int64) {
 		url := fmt.Sprintf("https://zkillboard.com/api/characterID/%d/page/%d/", characterID, page)
 
 		var zkillResponse []struct {
-			KillmailID   int64  `json:"killmail_id"`
-			KillmailTime string `json:"killmail_time"`
-			ZKB          struct {
+			KillmailID int64 `json:"killmail_id"`
+			ZKB        struct {
 				LocationID     int64   `json:"locationID"`
 				Hash           string  `json:"hash"`
 				FittedValue    float64 `json:"fittedValue"`
@@ -189,49 +199,40 @@ func FetchKillsForCharacter(characterID int64) {
 
 		newKills := 0
 		for _, zkill := range zkillResponse {
-			killTime, err := time.Parse("2006-01-02T15:04:05Z", zkill.KillmailTime)
+			kill := models.Kill{
+				KillmailID:     zkill.KillmailID,
+				CharacterID:    characterID,
+				LocationID:     zkill.ZKB.LocationID,
+				Hash:           zkill.ZKB.Hash,
+				FittedValue:    zkill.ZKB.FittedValue,
+				DroppedValue:   zkill.ZKB.DroppedValue,
+				DestroyedValue: zkill.ZKB.DestroyedValue,
+				TotalValue:     zkill.ZKB.TotalValue,
+				Points:         zkill.ZKB.Points,
+				NPC:            zkill.ZKB.NPC,
+				Solo:           zkill.ZKB.Solo,
+				Awox:           zkill.ZKB.Awox,
+			}
+
+			// Fetch additional data from ESI
+			esiKill, err := services.FetchKillmailFromESI(kill.KillmailID, kill.Hash)
 			if err != nil {
-				log.Printf("Error parsing kill time for kill %d: %v", zkill.KillmailID, err)
+				log.Printf("Error fetching killmail %d from ESI: %v", kill.KillmailID, err)
 				continue
 			}
 
-			if killTime.After(lastKillTime) {
-				kill := models.Kill{
-					KillmailID:     zkill.KillmailID,
-					CharacterID:    characterID,
-					KillTime:       killTime,
-					LocationID:     zkill.ZKB.LocationID,
-					Hash:           zkill.ZKB.Hash,
-					FittedValue:    zkill.ZKB.FittedValue,
-					DroppedValue:   zkill.ZKB.DroppedValue,
-					DestroyedValue: zkill.ZKB.DestroyedValue,
-					TotalValue:     zkill.ZKB.TotalValue,
-					Points:         zkill.ZKB.Points,
-					NPC:            zkill.ZKB.NPC,
-					Solo:           zkill.ZKB.Solo,
-					Awox:           zkill.ZKB.Awox,
-				}
+			// Combine zKillboard and ESI data
+			kill.SolarSystemID = esiKill.SolarSystemID
+			kill.Victim = esiKill.Victim
+			kill.Attackers = esiKill.Attackers
 
-				// Fetch additional data from ESI
-				esiKill, err := services.FetchKillmailFromESI(kill.KillmailID, kill.Hash)
-				if err != nil {
-					log.Printf("Error fetching killmail %d from ESI: %v", kill.KillmailID, err)
-					continue
-				}
-
-				// Combine zKillboard and ESI data
-				kill.SolarSystemID = esiKill.SolarSystemID
-				kill.Victim = esiKill.Victim
-				kill.Attackers = esiKill.Attackers
-
-				// Insert the kill
-				err = db.InsertKill(&kill)
-				if err != nil {
-					log.Printf("Error inserting kill %d: %v", kill.KillmailID, err)
-				} else {
-					newKills++
-					totalNewKills++
-				}
+			// Insert the kill
+			err = db.InsertKill(&kill)
+			if err != nil {
+				log.Printf("Error inserting kill %d: %v", kill.KillmailID, err)
+			} else {
+				newKills++
+				totalNewKills++
 			}
 		}
 

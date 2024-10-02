@@ -55,6 +55,17 @@ func main() {
 	r.GET("/items", routes.GetAllItems)
 	r.GET("/items/:typeID", routes.GetItemByTypeID)
 
+	// New routes
+	r.GET("/characters/:id/killmails", routes.GetCharacterKillmails)
+	r.GET("/characters/stats", routes.GetAllCharacterStats)
+
+	// New data routes
+	r.GET("/characters", routes.GetAllCharacters)
+	r.GET("/kills", routes.GetAllKills)
+
+	// Add this line to register the GetKillsByRegion route
+	r.GET("/kills/region/:regionID", routes.GetKillsByRegion)
+
 	// Setup Swagger
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

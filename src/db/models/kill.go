@@ -13,22 +13,37 @@ type Character struct {
 }
 
 type Kill struct {
-	KillmailID     int64      `json:"killmail_id" gorm:"primaryKey"`
-	CharacterID    int64      `json:"character_id"`
-	KillTime       time.Time  `json:"killmail_time"`
-	SolarSystemID  int        `json:"solar_system_id"`
-	LocationID     int64      `json:"locationID"`
-	Hash           string     `json:"hash"`
-	FittedValue    float64    `json:"fitted_value"`
-	DroppedValue   float64    `json:"dropped_value"`
-	DestroyedValue float64    `json:"destroyed_value"`
-	TotalValue     float64    `json:"total_value"`
-	Points         int        `json:"points"`
-	NPC            bool       `json:"npc"`
-	Solo           bool       `json:"solo"`
-	Awox           bool       `json:"awox"`
-	Victim         Victim     `json:"victim" gorm:"embedded;embeddedPrefix:victim_"`
-	Attackers      []Attacker `json:"attackers" gorm:"type:jsonb"`
+	KillmailID     int64         `json:"killmail_id" gorm:"primaryKey"`
+	CharacterID    int64         `json:"character_id"`
+	KillTime       time.Time     `json:"killmail_time"`
+	SolarSystemID  int           `json:"solar_system_id"`
+	LocationID     int64         `json:"locationID"`
+	Hash           string        `json:"hash"`
+	FittedValue    float64       `json:"fitted_value"`
+	DroppedValue   float64       `json:"dropped_value"`
+	DestroyedValue float64       `json:"destroyed_value"`
+	TotalValue     float64       `json:"total_value"`
+	Points         int           `json:"points"`
+	NPC            bool          `json:"npc"`
+	Solo           bool          `json:"solo"`
+	Awox           bool          `json:"awox"`
+	Victim         Victim        `json:"victim" gorm:"embedded;embeddedPrefix:victim_"`
+	Attackers      AttackersJSON `json:"attackers" gorm:"type:jsonb"`
+}
+
+type AttackersJSON []Attacker
+
+func (a AttackersJSON) Value() (driver.Value, error) {
+	return json.Marshal(a)
+}
+
+func (a *AttackersJSON) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New(fmt.Sprint("Failed to unmarshal JSONB value:", value))
+	}
+
+	return json.Unmarshal(bytes, &a)
 }
 
 type Victim struct {
@@ -73,4 +88,34 @@ func (a *Attacker) Scan(value interface{}) error {
 	}
 
 	return json.Unmarshal(bytes, &a)
+}
+
+func (k *Kill) MarshalJSON() ([]byte, error) {
+	type Alias Kill
+	return json.Marshal(&struct {
+		*Alias
+		Attackers json.RawMessage `json:"attackers"`
+	}{
+		Alias:     (*Alias)(k),
+		Attackers: k.AttackersJSON(),
+	})
+}
+
+func (k *Kill) UnmarshalJSON(data []byte) error {
+	type Alias Kill
+	aux := &struct {
+		*Alias
+		Attackers json.RawMessage `json:"attackers"`
+	}{
+		Alias: (*Alias)(k),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	return json.Unmarshal(aux.Attackers, &k.Attackers)
+}
+
+func (k *Kill) AttackersJSON() json.RawMessage {
+	b, _ := json.Marshal(k.Attackers)
+	return json.RawMessage(b)
 }

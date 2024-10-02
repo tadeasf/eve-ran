@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/tadeasf/eve-ran/src/db/models"
 )
@@ -362,4 +364,72 @@ func FetchAllSystems(concurrency int) ([]*models.System, error) {
 	}
 
 	return systems, nil
+}
+
+func FetchKillmailFromESI(killmailID int64, hash string) (*models.Kill, error) {
+	maxRetries := 3
+	baseDelay := time.Second
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		kill, err := fetchKillmailFromESIWithRetry(killmailID, hash)
+		if err == nil {
+			return kill, nil
+		}
+
+		// Check if the error is a timeout error
+		var esiError struct {
+			Error   string `json:"error"`
+			Timeout int    `json:"timeout"`
+		}
+		if jsonErr := json.Unmarshal([]byte(err.Error()), &esiError); jsonErr == nil && esiError.Error == "Timeout contacting tranquility" {
+			delay := time.Duration(esiError.Timeout) * time.Second
+			log.Printf("ESI timeout for killmail_id %d. Retrying in %v (attempt %d/%d)", killmailID, delay, attempt+1, maxRetries)
+			time.Sleep(delay)
+		} else if attempt < maxRetries-1 {
+			delay := baseDelay * time.Duration(attempt+1)
+			log.Printf("Retrying fetch for killmail_id %d in %v (attempt %d/%d)", killmailID, delay, attempt+1, maxRetries)
+			time.Sleep(delay)
+		} else {
+			return nil, fmt.Errorf("failed to fetch killmail after %d attempts: %v", maxRetries, err)
+		}
+	}
+
+	return nil, fmt.Errorf("unexpected error: should not reach this point")
+}
+
+func fetchKillmailFromESIWithRetry(killmailID int64, hash string) (*models.Kill, error) {
+	url := fmt.Sprintf("https://esi.evetech.net/latest/killmails/%d/%s/?datasource=tranquility", killmailID, hash)
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "EVE Ran Application - GitHub: tadeasf/eve-ran")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Cache-Control", "no-cache")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading ESI response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s", string(body))
+	}
+
+	var kill models.Kill
+	err = json.Unmarshal(body, &kill)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling killmail: %v", err)
+	}
+
+	return &kill, nil
 }

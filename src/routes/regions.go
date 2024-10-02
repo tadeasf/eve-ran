@@ -26,12 +26,20 @@ func FetchAndStoreRegions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Regions fetched and stored successfully", "count": len(regions)})
 }
 
+// GetAllRegions retrieves all regions from the database
+// @Summary Get all regions
+// @Description Fetch all regions from the database
+// @Tags regions
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.Region
+// @Failure 500 {object} models.ErrorResponse
+// @Router /regions [get]
 func GetAllRegions(c *gin.Context) {
 	regions, err := db.GetAllRegions()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, regions)
 }
