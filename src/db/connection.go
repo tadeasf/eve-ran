@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/tadeasf/eve-ran/src/db/models"
 	"gorm.io/driver/postgres"
@@ -12,7 +13,12 @@ import (
 var DB *gorm.DB
 
 func InitDB() {
-	dsn := "host=localhost port=5435 user=eve password=eve dbname=eve sslmode=disable"
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_NAME"))
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
