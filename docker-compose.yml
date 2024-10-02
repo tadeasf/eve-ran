@@ -11,7 +11,7 @@ services:
       POSTGRES_USER: eve
       POSTGRES_PASSWORD: eve
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data
     restart: always
 
   api:
@@ -30,6 +30,3 @@ services:
       - DB_PASSWORD=eve
       - DB_NAME=eve
     restart: always
-
-volumes:
-  postgres-data:
