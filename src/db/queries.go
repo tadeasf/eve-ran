@@ -171,7 +171,7 @@ type CharacterStats struct {
 	TotalISK    float64 `json:"total_isk"`
 }
 
-func GetCharacterStats(startTime, endTime time.Time, systemID, regionID int64) ([]CharacterStats, error) {
+func GetCharacterStats(startTime, endTime time.Time, systemID int64, regionIDs ...int64) ([]CharacterStats, error) {
 	query := DB.Table("kills").
 		Select("character_id, COUNT(*) as kill_count, SUM(total_value) as total_isk").
 		Where("kill_time BETWEEN ? AND ?", startTime, endTime).
@@ -181,9 +181,9 @@ func GetCharacterStats(startTime, endTime time.Time, systemID, regionID int64) (
 		query = query.Where("solar_system_id = ?", systemID)
 	}
 
-	if regionID != 0 {
+	if len(regionIDs) > 0 {
 		query = query.Joins("JOIN systems ON kills.solar_system_id = systems.system_id").
-			Where("systems.region_id = ?", regionID)
+			Where("systems.region_id IN ?", regionIDs)
 	}
 
 	var stats []CharacterStats

@@ -89,6 +89,68 @@
                 }
             }
         },
+        "/characters/stats": {
+            "get": {
+                "description": "Fetch stats for all characters from the database with optional filters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "characters"
+                ],
+                "summary": "Get all character stats",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Region IDs",
+                        "name": "regionID",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date (YYYY-MM-DD)",
+                        "name": "startDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (YYYY-MM-DD)",
+                        "name": "endDate",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/db.CharacterStats"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/characters/{id}": {
             "delete": {
                 "description": "Remove a character from the database",
@@ -373,6 +435,20 @@
         }
     },
     "definitions": {
+        "db.CharacterStats": {
+            "type": "object",
+            "properties": {
+                "character_id": {
+                    "type": "integer"
+                },
+                "kill_count": {
+                    "type": "integer"
+                },
+                "total_isk": {
+                    "type": "number"
+                }
+            }
+        },
         "models.Attacker": {
             "type": "object",
             "properties": {
